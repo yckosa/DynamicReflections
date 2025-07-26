@@ -152,14 +152,33 @@ namespace DynamicReflections
 
         private void OnButtonPressed(object sender, StardewModdingAPI.Events.ButtonPressedEventArgs e)
         {
-            if (Context.IsWorldReady is false || Game1.activeClickableMenu is not null)
+            
+            if (Context.IsWorldReady is false || e.Button != modConfig.QuickMenuKey)
             {
                 return;
             }
 
-            if (e.Button == modConfig.QuickMenuKey && Helper.ModRegistry.IsLoaded("spacechase0.GenericModConfigMenu") && apiManager.GetGenericModConfigMenuApi() is not null)
+            if (!Helper.ModRegistry.IsLoaded("spacechase0.GenericModConfigMenu") || apiManager.GetGenericModConfigMenuApi() is null)
+            {
+                Monitor.Log("Generic Mod Config Menu não está carregado ou a API não está disponível. Não é possível abrir o menu de configurações.", LogLevel.Warn);
+                return;
+            }
+
+            var currentActiveMenu = Game1.activeClickableMenu;
+
+            if (isGmcmMenuOpenForThisMod && currentActiveMenu is IClickableMenu menu && menu.GetType().FullName.Contains("GenericModConfigMenu"))
+            {
+                Game1.activeClickableMenu = null;
+                Game1.playSound("cancel");
+                isGmcmMenuOpenForThisMod = false;
+                return;
+            }
+
+            if (currentActiveMenu is null || !currentActiveMenu.GetType().FullName.Contains("GenericModConfigMenu"))
             {
                 apiManager.GetGenericModConfigMenuApi().OpenModMenu(ModManifest);
+                Game1.playSound("openMenu");
+                isGmcmMenuOpenForThisMod = true;
             }
         }
 
